@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics - Finance Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="modal.css">
     <link rel="stylesheet" href="empty-state.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -40,15 +41,15 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Top Category</h3>
-                    <div class="amount">$450.00</div>
+                    <div class="amount" id="topCategory">0.00</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total Income (YTD)</h3>
-                    <div class="amount income">$20,940.00</div>
+                    <div class="amount income" id="totalIncome">0.00</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total Expense (YTD)</h3>
-                    <div class="amount expense">$10,606.00</div>
+                    <div class="amount expense" id="totalExpense">0.00</div>
                 </div>
             </div>
             
@@ -68,31 +69,22 @@
                 <div class="summary-grid">
                     <div class="summary-item">
                         <h3>Savings Rate</h3>
-                        <div class="percentage">52%</div>
+                        <div class="percentage" id="savingsRate">0%</div>
                     </div>
                     <div class="summary-item">
                         <h3>Average Monthly Expense</h3>
-                        <div class="amount">$1,767.67</div>
+                        <div class="amount" id="avgMonthlyExpense">0.00</div>
                     </div>
                     <div class="summary-item">
                         <h3>Average Monthly Income</h3>
-                        <div class="amount">$3,490.00</div>
+                        <div class="amount" id="avgMonthlyIncome">0.00</div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
     
-    <div id="signout-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3>Sign Out?</h3>
-            <p>Are you sure you want to sign out?</p>
-            <div class="modal-actions">
-                <button type="button" onclick="closeModal()">Cancel</button>
-                <button type="button" class="btn-danger" onclick="confirmSignOut()">Sign Out</button>
-            </div>
-        </div>
-    </div>
+
     
     <script type="module" src="analytics.js"></script>
     <script>
@@ -107,16 +99,21 @@
         }
         
         function showSignOutModal() {
-            document.getElementById('signout-modal').classList.remove('hidden');
+            const modal = new (await import('./utils.js')).Modal('signout-modal', {
+                title: 'Sign Out?',
+                size: 'small',
+                content: '<p>Are you sure you want to sign out?</p>',
+                actions: `
+                    <button class="btn-secondary" onclick="closeModal('signout-modal')">Cancel</button>
+                    <button class="btn-danger" onclick="confirmSignOut()">Sign Out</button>
+                `
+            });
+            modal.open();
         }
         
         function confirmSignOut() {
             localStorage.removeItem('user');
             window.location.href = 'index.html';
-        }
-        
-        function closeModal() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
         }
         
         // Close mobile menu when clicking outside

@@ -1,6 +1,8 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, addDoc, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, addDoc, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { formatCurrency, Modal } from './utils.js';
+import { transactionCache } from './cache.js';
 
 let transactions = [];
 let currentUser = null;
@@ -16,13 +18,26 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Load transactions from Firestore
-async function loadTransactions() {
+// Load transactions from Firestore with caching
+async function loadTransactions(forceRefresh = false) {
     try {
+        // Check cache first
+        if (!forceRefresh) {
+            const cached = transactionCache.get(currentUser.uid);
+            if (cached) {
+                transactions = cached;
+                calculateTotals();
+                renderTransactions();
+                initializeChart();
+                return;
+            }
+        }
+
         const q = query(
             collection(db, 'transactions'),
             where('userId', '==', currentUser.uid),
-            orderBy('date', 'desc')
+            orderBy('date', 'desc'),
+            limit(50) // Limit for dashboard
         );
         const querySnapshot = await getDocs(q);
         transactions = [];
@@ -30,6 +45,8 @@ async function loadTransactions() {
             transactions.push({ id: doc.id, ...doc.data() });
         });
         
+        // Cache the results
+        transactionCache.set(currentUser.uid, transactions);
         calculateTotals();
         renderTransactions();
         initializeChart();
@@ -41,8 +58,8 @@ async function loadTransactions() {
 
 
 // Refresh data
-function refreshData() {
-    loadTransactions();
+function refreshData(force = false) {
+    loadTransactions(force);
 }
 
 // Calculate totals
@@ -57,9 +74,9 @@ function calculateTotals() {
     const monthIncome = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const monthExpense = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(t.amount), 0);
     
-    document.getElementById('total-balance').textContent = balance.toFixed(2);
-    document.getElementById('month-income').textContent = monthIncome.toFixed(2);
-    document.getElementById('month-expense').textContent = monthExpense.toFixed(2);
+    document.getElementById('total-balance').textContent = formatCurrency(balance);
+    document.getElementById('month-income').textContent = formatCurrency(monthIncome);
+    document.getElementById('month-expense').textContent = formatCurrency(monthExpense);
 }
 
 // Render transactions
@@ -70,7 +87,7 @@ function renderTransactions() {
         return;
     }
     
-    container.innerHTML = transactions.slice(-5).reverse().map(t => `
+    container.innerHTML = transactions.slice(0, 5).map(t => `
         <div class="transaction-item">
             <div class="transaction-icon" style="background: ${t.type === 'income' ? '#dcfce7' : '#fee2e2'}">
                 ${getIcon(t.category)}
@@ -80,7 +97,7 @@ function renderTransactions() {
                 <small>${t.category} • ${t.date}</small>
             </div>
             <div class="transaction-amount ${t.type}">
-                ${t.type === 'income' ? '+' : ''}$${Math.abs(t.amount).toFixed(2)}
+                ${t.type === 'income' ? '+' : ''}${formatCurrency(t.amount)}
             </div>
         </div>
     `).join('');
@@ -147,40 +164,118 @@ function getBalanceTrend() {
 
 // Modal functions
 function showAddTransaction() {
-    document.getElementById('add-transaction-modal').classList.remove('hidden');
+    const modal = new Modal('add-transaction-modal', {
+        title: 'Add Transaction',
+        size: 'medium',
+        content: `
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="description" placeholder="Enter description" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="amount" placeholder="0.00" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="category" required>
+                        <option value="">Select Category</option>
+                        <option value="Food">Food</option>
+                        <option value="Transportation">Transportation</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Salary">Salary</option>
+                        <option value="Freelance">Freelance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="type" required>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+            </form>
+        `,
+        actions: `
+            <button class="btn-secondary" onclick="closeModal('add-transaction-modal')">Cancel</button>
+            <button class="btn-primary" onclick="submitDashboardTransaction()">Add</button>
+        `
+    });
+    modal.open();
 }
 
-function closeModal() {
-    document.getElementById('add-transaction-modal').classList.add('hidden');
+function closeModal(id) {
+    if (id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.remove('active');
+    } else {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+    document.body.style.overflow = '';
 }
 
 // Add transaction
-document.getElementById('transaction-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const description = document.getElementById('description').value;
+function submitDashboardTransaction() {
+    const description = document.getElementById('description').value.trim();
     const amount = parseFloat(document.getElementById('amount').value);
     const category = document.getElementById('category').value;
     const type = document.getElementById('type').value;
+    const date = document.getElementById('date').value;
+    
+    // Validation
+    if (!description) {
+        showNotificationModal('Validation Error', 'Description is required');
+        return;
+    }
+    if (!amount || amount <= 0) {
+        showNotificationModal('Validation Error', 'Please enter a valid amount');
+        return;
+    }
+    if (!category) {
+        showNotificationModal('Validation Error', 'Please select a category');
+        return;
+    }
+    if (!date) {
+        showNotificationModal('Validation Error', 'Please select a date');
+        return;
+    }
     
     const transaction = {
         description,
         amount: type === 'expense' ? -Math.abs(amount) : Math.abs(amount),
         category,
         type,
-        date: new Date().toISOString().split('T')[0],
+        date,
         userId: currentUser.uid
     };
     
+    saveDashboardTransaction(transaction);
+}
+
+async function saveDashboardTransaction(transaction) {
     try {
-        await addDoc(collection(db, 'transactions'), transaction);
-        await loadTransactions();
-        closeModal();
-        this.reset();
+        const docRef = await addDoc(collection(db, 'transactions'), transaction);
+        // Add to cache directly
+        transactions.unshift({ id: docRef.id, ...transaction });
+        transactionCache.set(currentUser.uid, transactions);
+        
+        calculateTotals();
+        renderTransactions();
+        initializeChart();
+        closeModal('add-transaction-modal');
     } catch (error) {
         console.error('Error adding transaction:', error);
-        alert('Failed to add transaction');
+        showNotificationModal('Error', 'Failed to add transaction');
     }
-});
+}
 
 function handleSignOut() {
     signOut(auth).then(() => {
@@ -194,6 +289,20 @@ function handleSignOut() {
 window.signOut = handleSignOut;
 window.showAddTransaction = showAddTransaction;
 window.closeModal = closeModal;
+window.submitDashboardTransaction = submitDashboardTransaction;
+
+// Notification modal function
+function showNotificationModal(title, message) {
+    const modal = new Modal('notification-modal', {
+        title: title,
+        size: 'small',
+        content: `<p>${message}</p>`,
+        actions: `<button class="btn-primary" onclick="closeModal('notification-modal')">OK</button>`
+    });
+    modal.open();
+}
+
+window.showNotificationModal = showNotificationModal;
 
 // Initialize chart after data loads
 function initializeChart() {
@@ -207,9 +316,19 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
-// Refresh data when window gains focus
+// Refresh data when window gains focus (only if cache is stale)
 window.addEventListener('focus', () => {
-    if (currentUser) refreshData();
+    if (currentUser && transactionCache.needsRefresh(currentUser.uid)) {
+        loadTransactions(true);
+    }
+});
+
+// Listen for currency changes
+window.addEventListener('currencyChanged', function() {
+    if (currentUser) {
+        calculateTotals();
+        renderTransactions();
+    }
 });
 
 // Initialize chart when transactions are loaded

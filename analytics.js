@@ -1,6 +1,8 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { formatCurrency } from './utils.js';
+import { transactionCache } from './cache.js';
 
 let transactions = [];
 let currentUser = null;
@@ -15,12 +17,25 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Load transactions from Firestore
-async function loadTransactions() {
+// Load transactions from Firestore with caching
+async function loadTransactions(forceRefresh = false) {
     try {
+        // Check cache first
+        if (!forceRefresh) {
+            const cached = transactionCache.get(currentUser.uid);
+            if (cached) {
+                transactions = cached;
+                calculateAnalytics();
+                createCategoryChart();
+                createExpenseHistogram();
+                return;
+            }
+        }
+
         const q = query(
             collection(db, 'transactions'),
-            where('userId', '==', currentUser.uid)
+            where('userId', '==', currentUser.uid),
+            orderBy('date', 'desc')
         );
         const querySnapshot = await getDocs(q);
         transactions = [];
@@ -28,6 +43,8 @@ async function loadTransactions() {
             transactions.push({ id: doc.id, ...doc.data() });
         });
         
+        // Cache the results
+        transactionCache.set(currentUser.uid, transactions);
         calculateAnalytics();
         createCategoryChart();
         createExpenseHistogram();
@@ -44,9 +61,9 @@ function calculateAnalytics() {
     const totalIncome = income.reduce((sum, t) => sum + Math.abs(t.amount), 0);
     const totalExpense = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
     
-    // Update stats
-    document.querySelector('.stats-grid .stat-card:nth-child(2) .amount').textContent = `$${totalIncome.toFixed(2)}`;
-    document.querySelector('.stats-grid .stat-card:nth-child(3) .amount').textContent = `$${totalExpense.toFixed(2)}`;
+    // Update main stats
+    document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+    document.getElementById('totalExpense').textContent = formatCurrency(totalExpense);
     
     // Calculate top category
     const categoryTotals = {};
@@ -58,8 +75,36 @@ function calculateAnalytics() {
         ? Object.keys(categoryTotals).reduce((a, b) => categoryTotals[a] > categoryTotals[b] ? a : b)
         : null;
     
-    document.querySelector('.stats-grid .stat-card:nth-child(1) .amount').textContent = 
-        topCategoryKey ? `$${categoryTotals[topCategoryKey].toFixed(2)}` : '$0.00';
+    document.getElementById('topCategory').textContent = 
+        topCategoryKey ? formatCurrency(categoryTotals[topCategoryKey]) : formatCurrency(0);
+    
+    // Calculate summary statistics
+    const monthlyExpenses = {};
+    const monthlyIncome = {};
+    
+    expenses.forEach(t => {
+        const month = t.date.slice(0, 7);
+        monthlyExpenses[month] = (monthlyExpenses[month] || 0) + Math.abs(t.amount);
+    });
+    
+    income.forEach(t => {
+        const month = t.date.slice(0, 7);
+        monthlyIncome[month] = (monthlyIncome[month] || 0) + Math.abs(t.amount);
+    });
+    
+    const avgMonthlyExpense = Object.keys(monthlyExpenses).length > 0 
+        ? Object.values(monthlyExpenses).reduce((a, b) => a + b, 0) / Object.keys(monthlyExpenses).length 
+        : 0;
+    
+    const avgMonthlyIncome = Object.keys(monthlyIncome).length > 0 
+        ? Object.values(monthlyIncome).reduce((a, b) => a + b, 0) / Object.keys(monthlyIncome).length 
+        : 0;
+    
+    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome * 100) : 0;
+    
+    document.getElementById('avgMonthlyExpense').textContent = formatCurrency(avgMonthlyExpense);
+    document.getElementById('avgMonthlyIncome').textContent = formatCurrency(avgMonthlyIncome);
+    document.getElementById('savingsRate').textContent = `${Math.max(0, savingsRate).toFixed(0)}%`;
 }
 
 // Create pie chart for spending by category
@@ -163,7 +208,7 @@ function createExpenseHistogram() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + value.toFixed(0);
+                            return formatCurrency(value);
                         }
                     }
                 }
@@ -176,5 +221,19 @@ function createExpenseHistogram() {
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden && currentUser) {
         loadTransactions();
+    }
+});
+
+// Listen for currency changes
+window.addEventListener('currencyChanged', function() {
+    if (currentUser) {
+        calculateAnalytics();
+    }
+});
+
+// Refresh only if cache is stale
+window.addEventListener('focus', () => {
+    if (currentUser && transactionCache.needsRefresh(currentUser.uid)) {
+        loadTransactions(true);
     }
 });

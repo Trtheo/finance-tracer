@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Finance Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -40,13 +41,13 @@
                 <h2>Profile Settings</h2>
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input type="text" id="profile-name" value="clever">
+                    <input type="text" id="profile-name" placeholder="Enter your full name">
                 </div>
                 <div class="form-group">
                     <label>Email Address</label>
-                    <input type="email" id="profile-email" value="clever@gmail.com">
+                    <input type="email" id="profile-email" placeholder="Enter your email" readonly>
                 </div>
-                <button class="btn-secondary"><i class="fas fa-lock"></i> Change Password</button>
+                <button class="btn-secondary" onclick="showChangePasswordModal()"><i class="fas fa-lock"></i> Change Password</button>
             </div>
             
             <div class="settings-section">
@@ -57,11 +58,12 @@
                         <option value="USD">US Dollar (USD)</option>
                         <option value="EUR">Euro (EUR)</option>
                         <option value="GBP">British Pound (GBP)</option>
+                        <option value="RWF" selected>Rwandan Franc (RWF)</option>
                     </select>
                     <small>This will be used to format all currency values</small>
                 </div>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="notifications" checked>
+                    <input type="checkbox" id="notifications">
                     <label for="notifications">Email Notifications</label>
                     <small>Receive updates about your finances</small>
                 </div>

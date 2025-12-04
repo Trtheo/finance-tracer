@@ -1,0 +1,9 @@
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+    font-style: italic;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 2px dashed #d1d5db;
+}

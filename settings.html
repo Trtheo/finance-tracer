@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Finance Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="sidebar">
+            <div class="mobile-header">
+                <div class="logo">
+                    <span>Finance</span>
+                    <small>Personal Tracker</small>
+                </div>
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            </div>
+            <button class="collapse-btn desktop-only" onclick="toggleSidebar()">☰</button>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html">📊 <span>Dashboard</span></a></li>
+                <li><a href="transactions.html">💸 <span>Transactions</span></a></li>
+                <li><a href="analytics.html">📈 <span>Analytics</span></a></li>
+                <li><a href="settings.html" class="active">⚙️ <span>Settings</span></a></li>
+                <li class="mobile-only"><a href="#" onclick="showSignOutModal()">🚪 Sign Out</a></li>
+            </ul>
+            <div class="sidebar-bottom">
+                <button class="sign-out desktop-only" onclick="showSignOutModal()">🚪 <span>Sign Out</span></button>
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <header>
+                <h1>Settings</h1>
+                <p>Manage your account preferences and settings</p>
+            </header>
+            
+            <div class="settings-section">
+                <h2>Profile Settings</h2>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="profile-name" value="clever">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="profile-email" value="clever@gmail.com">
+                </div>
+                <button class="btn-secondary"><i class="fas fa-lock"></i> Change Password</button>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Preferences</h2>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select id="currency">
+                        <option value="USD">US Dollar (USD)</option>
+                        <option value="EUR">Euro (EUR)</option>
+                        <option value="GBP">British Pound (GBP)</option>
+                    </select>
+                    <small>This will be used to format all currency values</small>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="notifications" checked>
+                    <label for="notifications">Email Notifications</label>
+                    <small>Receive updates about your finances</small>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Data Management</h2>
+                <button class="btn-primary" onclick="exportData()"><i class="fas fa-download"></i> Export Transactions as CSV</button>
+                <p>Download all your transaction data in CSV format for backup or analysis.</p>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Security</h2>
+                <button class="btn-secondary"><i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication</button>
+                <p>Add an extra layer of security to your account</p>
+            </div>
+            
+
+        </main>
+    </div>
+    
+    <div id="signout-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out?</p>
+            <div class="modal-actions">
+                <button type="button" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn-danger" onclick="confirmSignOut()">Sign Out</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="settings.js"></script>
+    <script>
+        function toggleMobileMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            navMenu.classList.toggle('mobile-open');
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+        
+        function showSignOutModal() {
+            document.getElementById('signout-modal').classList.remove('hidden');
+        }
+        
+        function confirmSignOut() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+        
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+        }
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const sidebar = document.querySelector('.sidebar');
+            const navMenu = document.querySelector('.nav-menu');
+            if (!sidebar.contains(e.target) && navMenu.classList.contains('mobile-open')) {
+                navMenu.classList.remove('mobile-open');
+            }
+        });
+    </script>
+</body>
+</html>

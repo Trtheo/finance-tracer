@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Personal Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="validation.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-section">
+            <div class="logo">
+                <div class="logo-icon">📈</div>
+            </div>
+            <h1>Manage Your Money</h1>
+            <p>Track expenses, visualize spending patterns, and take control of your finances with our intuitive personal finance tracker.</p>
+            <ul>
+                <li>Real-time expense tracking</li>
+                <li>Smart analytics & insights</li>
+                <li>Export & backup your data</li>
+            </ul>
+        </div>
+        
+        <div class="right-section">
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showSignIn()">Sign In</button>
+                <button class="tab-btn" onclick="showSignUp()">Create Account</button>
+            </div>
+            
+            <form id="signin-form" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="text" id="signin-email" placeholder="your_email@gmail.com">
+                    <div class="error-message" id="signin-email-error"></div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signin-password" placeholder="••••••••">
+                    <div class="error-message" id="signin-password-error"></div>
+                </div>
+                <button type="submit" class="btn-primary">Sign In</button>
+                <div class="divider">Or continue with</div>
+                <button type="button" class="btn-google"><i class="fab fa-google"></i> Google</button>
+            </form>
+            
+            <form id="signup-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="signup-name" placeholder="Theophile">
+                    <div class="error-message" id="signup-name-error"></div>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="text" id="signup-email" placeholder="your_email@gmail.com">
+                    <div class="error-message" id="signup-email-error"></div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signup-password" placeholder="••••••••">
+                    <small>Password must be at least 8 characters long</small>
+                    <div class="error-message" id="signup-password-error"></div>
+                </div>
+                <button type="submit" class="btn-primary">Create Account</button>
+                <p class="terms">By signing up, you agree to our Terms of Service and Privacy Policy</p>
+            </form>
+        </div>
+    </div>
+    
+    <script type="module" src="auth.js"></script>
+</body>
+</html>

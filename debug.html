@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Firebase</title>
+</head>
+<body>
+    <h1>Firebase Debug</h1>
+    <button onclick="testFirestore()">Test Firestore Write</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { auth, db } from './firebase-config.js';
+        import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        window.testFirestore = async function() {
+            const result = document.getElementById('result');
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        await setDoc(doc(db, 'users', user.uid), {
+                            name: 'Test User',
+                            email: user.email,
+                            createdAt: new Date().toISOString(),
+                            test: true
+                        });
+                        result.innerHTML = '<p style="color: green;">✅ Firestore write successful!</p>';
+                    } catch (error) {
+                        result.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+                        console.error('Firestore error:', error);
+                    }
+                } else {
+                    result.innerHTML = '<p style="color: orange;">⚠️ No user logged in</p>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

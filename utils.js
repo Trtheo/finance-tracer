@@ -70,6 +70,13 @@ export class Modal {
             this.element.classList.remove('active');
             document.body.style.overflow = '';
             this.isOpen = false;
+            // Remove from DOM after animation
+            setTimeout(() => {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                    this.element = null;
+                }
+            }, 300);
         }
     }
 
@@ -92,12 +99,23 @@ window.closeModal = function(id) {
     if (modal) {
         modal.classList.remove('active');
         document.body.style.overflow = '';
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
     }
 };
 
 window.closeAllModals = function() {
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.classList.remove('active');
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
     });
     document.body.style.overflow = '';
 };

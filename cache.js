@@ -36,6 +36,14 @@ class TransactionCache {
         this.lastFetch = null;
     }
 
+    static clearAllCaches() {
+        // Clear all possible caches
+        if (typeof window !== 'undefined') {
+            localStorage.clear();
+            sessionStorage.clear();
+        }
+    }
+
     needsRefresh(userId) {
         const cached = this.cache.get(userId);
         if (!cached) return true;

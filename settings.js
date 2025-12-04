@@ -198,44 +198,50 @@ function showDeleteConfirm() {
 function closeModal(id) {
     if (id) {
         const modal = document.getElementById(id);
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.parentNode.removeChild(modal);
+                }
+            }, 300);
+        }
     } else {
-        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            m.classList.remove('active');
+            setTimeout(() => {
+                if (m.parentNode) {
+                    m.parentNode.removeChild(m);
+                }
+            }, 300);
+        });
     }
     document.body.style.overflow = '';
 }
 
 async function confirmSignOut() {
     try {
-        if (!currentUser || !currentUser.uid) {
-            throw new Error('No authenticated user');
-        }
-
-        // Delete all user transactions
-        const q = query(
-            collection(db, 'transactions'),
-            where('userId', '==', currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const deletePromises = [];
-        querySnapshot.forEach((docSnapshot) => {
-            deletePromises.push(deleteDoc(doc(db, 'transactions', docSnapshot.id)));
-        });
-        await Promise.all(deletePromises);
-        
         await firebaseSignOut(auth);
+        // Clear local data
+        localStorage.clear();
         window.location.href = 'index.html';
     } catch (error) {
         console.error('Error during sign out:', error);
-        alert('Failed to delete data');
+        // Force redirect even if sign out fails
+        localStorage.clear();
+        window.location.href = 'index.html';
     }
 }
 
 function handleSignOut() {
     firebaseSignOut(auth).then(() => {
+        localStorage.clear();
         window.location.href = 'index.html';
     }).catch((error) => {
         console.error('Sign out error:', error);
+        // Force redirect even if sign out fails
+        localStorage.clear();
+        window.location.href = 'index.html';
     });
 }
 

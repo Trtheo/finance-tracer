@@ -226,9 +226,23 @@ function showAddTransaction() {
 function closeModal(id) {
     if (id) {
         const modal = document.getElementById(id);
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.parentNode.removeChild(modal);
+                }
+            }, 300);
+        }
     } else {
-        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+            m.classList.remove('active');
+            setTimeout(() => {
+                if (m.parentNode) {
+                    m.parentNode.removeChild(m);
+                }
+            }, 300);
+        });
     }
     document.body.style.overflow = '';
 }
@@ -290,9 +304,12 @@ async function saveDashboardTransaction(transaction) {
 
 function handleSignOut() {
     signOut(auth).then(() => {
+        localStorage.clear();
         window.location.href = 'index.html';
     }).catch((error) => {
         console.error('Sign out error:', error);
+        localStorage.clear();
+        window.location.href = 'index.html';
     });
 }
 

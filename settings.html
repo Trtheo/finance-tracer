@@ -39,33 +39,51 @@
             
             <div class="settings-section">
                 <h2>Profile Settings</h2>
-                <div class="form-group">
+                <div class="input-group">
                     <label>Full Name</label>
-                    <input type="text" id="profile-name" placeholder="Enter your full name">
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="profile-name" placeholder="Enter your full name">
+                    </div>
                 </div>
-                <div class="form-group">
+                <div class="input-group">
                     <label>Email Address</label>
-                    <input type="email" id="profile-email" placeholder="Enter your email" readonly>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="profile-email" placeholder="Enter your email" readonly>
+                        <i class="fas fa-lock readonly-icon"></i>
+                    </div>
                 </div>
-                <button class="btn-secondary" onclick="showChangePasswordModal()"><i class="fas fa-lock"></i> Change Password</button>
+                <button class="btn-secondary" onclick="showChangePasswordModal()">
+                    <i class="fas fa-lock"></i>
+                    Change Password
+                </button>
             </div>
             
             <div class="settings-section">
                 <h2>Preferences</h2>
-                <div class="form-group">
+                <div class="input-group">
                     <label>Currency</label>
-                    <select id="currency">
-                        <option value="USD">US Dollar (USD)</option>
-                        <option value="EUR">Euro (EUR)</option>
-                        <option value="GBP">British Pound (GBP)</option>
-                        <option value="RWF" selected>Rwandan Franc (RWF)</option>
-                    </select>
-                    <small>This will be used to format all currency values</small>
+                    <div class="input-wrapper">
+                        <i class="fas fa-dollar-sign input-icon"></i>
+                        <select id="currency">
+                            <option value="USD">US Dollar (USD)</option>
+                            <option value="EUR">Euro (EUR)</option>
+                            <option value="GBP">British Pound (GBP)</option>
+                            <option value="RWF" selected>Rwandan Franc (RWF)</option>
+                        </select>
+                    </div>
+                    <small class="input-hint">This will be used to format all currency values</small>
                 </div>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="notifications">
-                    <label for="notifications">Email Notifications</label>
-                    <small>Receive updates about your finances</small>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="notifications">
+                        <label for="notifications">
+                            <i class="fas fa-bell"></i>
+                            Email Notifications
+                        </label>
+                    </div>
+                    <small class="input-hint">Receive updates about your finances</small>
                 </div>
             </div>
             
@@ -75,13 +93,6 @@
                 <p>Download all your transaction data in CSV format for backup or analysis.</p>
             </div>
             
-            <div class="settings-section">
-                <h2>Security</h2>
-                <button class="btn-secondary"><i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication</button>
-                <p>Add an extra layer of security to your account</p>
-            </div>
-            
-
         </main>
     </div>
     
@@ -100,7 +111,16 @@
     <script>
         function toggleMobileMenu() {
             const navMenu = document.querySelector('.nav-menu');
-            navMenu.classList.toggle('mobile-open');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (navMenu.classList.contains('mobile-open')) {
+                navMenu.classList.remove('mobile-open');
+            } else {
+                // Position dropdown below sidebar
+                const sidebarRect = sidebar.getBoundingClientRect();
+                navMenu.style.top = (sidebarRect.bottom + 8) + 'px';
+                navMenu.classList.add('mobile-open');
+            }
         }
         
         function toggleSidebar() {

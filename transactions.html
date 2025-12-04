@@ -58,7 +58,16 @@
         
         function toggleMobileMenu() {
             const navMenu = document.querySelector('.nav-menu');
-            navMenu.classList.toggle('mobile-open');
+            const sidebar = document.querySelector('.sidebar');
+            
+            if (navMenu.classList.contains('mobile-open')) {
+                navMenu.classList.remove('mobile-open');
+            } else {
+                // Position dropdown below sidebar
+                const sidebarRect = sidebar.getBoundingClientRect();
+                navMenu.style.top = (sidebarRect.bottom + 8) + 'px';
+                navMenu.classList.add('mobile-open');
+            }
         }
         
         function toggleSidebar() {

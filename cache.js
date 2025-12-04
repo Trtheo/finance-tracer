@@ -23,7 +23,16 @@ class TransactionCache {
     }
 
     invalidate(userId) {
-        this.cache.delete(userId);
+        if (userId) {
+            this.cache.delete(userId);
+        } else {
+            this.cache.clear();
+        }
+        this.lastFetch = null;
+    }
+
+    clearAll() {
+        this.cache.clear();
         this.lastFetch = null;
     }
 

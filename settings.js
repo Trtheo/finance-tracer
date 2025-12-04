@@ -72,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // Export data function
 async function exportData() {
     try {
+        if (!currentUser || !currentUser.uid) {
+            throw new Error('No authenticated user');
+        }
+
         const q = query(
             collection(db, 'transactions'),
             where('userId', '==', currentUser.uid)
@@ -203,6 +207,10 @@ function closeModal(id) {
 
 async function confirmSignOut() {
     try {
+        if (!currentUser || !currentUser.uid) {
+            throw new Error('No authenticated user');
+        }
+
         // Delete all user transactions
         const q = query(
             collection(db, 'transactions'),

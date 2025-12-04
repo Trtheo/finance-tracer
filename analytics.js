@@ -9,10 +9,17 @@ let currentUser = null;
 
 // Check authentication and load data
 onAuthStateChanged(auth, async (user) => {
-    if (user) {
+    if (user && user.uid) {
+        // Clear previous user data
+        if (currentUser && currentUser.uid !== user.uid) {
+            transactions = [];
+            transactionCache.invalidate(currentUser.uid);
+        }
         currentUser = user;
         await loadTransactions();
     } else {
+        transactions = [];
+        currentUser = null;
         window.location.href = 'index.html';
     }
 });
@@ -30,6 +37,10 @@ async function loadTransactions(forceRefresh = false) {
                 createExpenseHistogram();
                 return;
             }
+        }
+
+        if (!currentUser || !currentUser.uid) {
+            throw new Error('No authenticated user');
         }
 
         const q = query(

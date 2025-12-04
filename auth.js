@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Authentication functionality
 function showSignIn() {
@@ -176,6 +176,43 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+// Google Sign In
+async function signInWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        
+        // Check if user exists in Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        if (!userDoc.exists()) {
+            // Create user profile in Firestore
+            await setDoc(doc(db, 'users', user.uid), {
+                name: user.displayName,
+                email: user.email,
+                createdAt: new Date().toISOString(),
+                provider: 'google'
+            });
+        }
+        
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Google sign in error:', error);
+        if (error.code === 'auth/popup-closed-by-user') {
+            // User closed popup, do nothing
+            return;
+        } else if (error.code === 'auth/cancelled-popup-request') {
+            // Multiple popups, do nothing
+            return;
+        } else {
+            alert('Google sign in failed. Please try again.');
+        }
+    }
+}
+
 // Make functions global
 window.showSignIn = showSignIn;
 window.showSignUp = showSignUp;
+window.signInWithGoogle = signInWithGoogle;

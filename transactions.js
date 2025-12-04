@@ -11,10 +11,17 @@ let deletingId = null;
 
 // Check authentication
 onAuthStateChanged(auth, async (user) => {
-    if (user) {
+    if (user && user.uid) {
+        // Clear previous user data
+        if (currentUser && currentUser.uid !== user.uid) {
+            transactions = [];
+            transactionCache.invalidate(currentUser.uid);
+        }
         currentUser = user;
         await loadTransactions();
     } else {
+        transactions = [];
+        currentUser = null;
         window.location.href = 'index.html';
     }
 });
@@ -32,11 +39,15 @@ async function loadTransactions(forceRefresh = false) {
             }
         }
 
+        if (!currentUser || !currentUser.uid) {
+            throw new Error('No authenticated user');
+        }
+
         const q = query(
             collection(db, 'transactions'),
             where('userId', '==', currentUser.uid),
             orderBy('date', 'desc'),
-            limit(100) // Limit to recent 100 transactions
+            limit(100)
         );
         const querySnapshot = await getDocs(q);
         transactions = [];

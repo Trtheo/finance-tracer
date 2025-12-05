@@ -164,10 +164,18 @@ function getIcon(category) {
 
 // Chart
 function createBalanceChart() {
-    const ctx = document.getElementById('balanceChart').getContext('2d');
+    const canvas = document.getElementById('balanceChart');
+    if (!canvas) return;
+    
+    // Destroy existing chart if it exists
+    if (window.balanceChartInstance) {
+        window.balanceChartInstance.destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
     const balanceData = getBalanceTrend();
     
-    new Chart(ctx, {
+    window.balanceChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: balanceData.labels,

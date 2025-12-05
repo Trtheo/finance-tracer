@@ -9,33 +9,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-layout">
+    <div class="app-container">
         <nav class="sidebar">
-            <div class="mobile-header">
-                <div class="logo">
-                    <span>Finance</span>
-                    <small>Personal Tracker</small>
-                </div>
-                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="sidebar-header">
+                <h2><i class="fas fa-chart-line"></i> Finance</h2>
+                <p>Personal Tracker</p>
             </div>
-            <button class="collapse-btn desktop-only" onclick="toggleSidebar()">☰</button>
             <ul class="nav-menu">
-                <li><a href="dashboard.html">📊 <span>Dashboard</span></a></li>
-                <li><a href="transactions.html">💸 <span>Transactions</span></a></li>
-                <li><a href="analytics.html">📈 <span>Analytics</span></a></li>
-                <li><a href="settings.html" class="active">⚙️ <span>Settings</span></a></li>
-                <li class="mobile-only"><a href="#" onclick="showSignOutModal()">🚪 Sign Out</a></li>
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="transactions.html"><i class="fas fa-exchange-alt"></i> Transactions</a></li>
+                <li><a href="categories.html"><i class="fas fa-tags"></i> Categories</a></li>
+                <li><a href="analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="settings.html" class="active"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
-            <div class="sidebar-bottom">
-                <button class="sign-out desktop-only" onclick="showSignOutModal()">🚪 <span>Sign Out</span></button>
-            </div>
         </nav>
         
         <main class="main-content">
-            <header>
+            <header class="top-header">
                 <h1>Settings</h1>
-                <p>Manage your account preferences and settings</p>
+                <div class="user-profile">
+                    <span id="user-name"></span>
+                    <div class="profile-dropdown">
+                        <i class="fas fa-user-circle" id="profile-icon"></i>
+                        <div class="dropdown-menu" id="profile-menu">
+                            <a href="settings.html"><i class="fas fa-user"></i> Profile</a>
+                            <a href="#" id="sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+                        </div>
+                    </div>
+                </div>
             </header>
+            
+            <div class="page-content">
+                <p>Manage your account preferences and settings</p>
             
             <div class="settings-section">
                 <h2>Profile Settings</h2>
@@ -93,6 +98,7 @@
                 <p>Download all your transaction data in CSV format for backup or analysis.</p>
             </div>
             
+            </div>
         </main>
     </div>
     

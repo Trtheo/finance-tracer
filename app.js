@@ -25,6 +25,38 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// Profile dropdown
+document.getElementById('profile-icon').addEventListener('click', () => {
+    document.getElementById('profile-menu').classList.toggle('show');
+});
+
+document.getElementById('sign-out').addEventListener('click', () => {
+    showSignOutModal();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.profile-dropdown')) {
+        document.getElementById('profile-menu').classList.remove('show');
+    }
+});
+
+// Load categories from Firestore
+async function loadCategories() {
+    try {
+        const q = query(collection(db, 'categories'), where('userId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+        const categories = [];
+        snapshot.forEach(doc => {
+            categories.push({ id: doc.id, ...doc.data() });
+        });
+        return categories;
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        return [];
+    }
+}
+
 // Load transactions from Firestore with caching
 async function loadTransactions(forceRefresh = false) {
     try {
@@ -44,17 +76,21 @@ async function loadTransactions(forceRefresh = false) {
             throw new Error('No authenticated user');
         }
 
+        console.log('Loading transactions for dashboard, user:', currentUser.uid);
+        
         const q = query(
             collection(db, 'transactions'),
-            where('userId', '==', currentUser.uid),
-            orderBy('date', 'desc'),
-            limit(50)
+            where('userId', '==', currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         transactions = [];
         querySnapshot.forEach((doc) => {
-            transactions.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            console.log('Dashboard transaction:', doc.id, data);
+            transactions.push({ id: doc.id, ...data });
         });
+        
+        console.log('Dashboard total transactions:', transactions.length);
         
         // Cache the results
         transactionCache.set(currentUser.uid, transactions);
@@ -174,7 +210,12 @@ function getBalanceTrend() {
 }
 
 // Modal functions
-function showAddTransaction() {
+async function showAddTransaction() {
+    const categories = await loadCategories();
+    const categoryOptions = categories.map(cat => 
+        `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`
+    ).join('');
+    
     const modal = new Modal('add-transaction-modal', {
         title: 'Add Transaction',
         size: 'medium',
@@ -198,12 +239,7 @@ function showAddTransaction() {
                     <label>Category</label>
                     <select id="category" required>
                         <option value="">Select Category</option>
-                        <option value="Food">Food</option>
-                        <option value="Transportation">Transportation</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Utilities">Utilities</option>
-                        <option value="Salary">Salary</option>
-                        <option value="Freelance">Freelance</option>
+                        ${categoryOptions}
                     </select>
                 </div>
                 <div class="form-group">
@@ -287,7 +323,13 @@ function submitDashboardTransaction() {
 
 async function saveDashboardTransaction(transaction) {
     try {
-        const docRef = await addDoc(collection(db, 'transactions'), transaction);
+        console.log('Saving dashboard transaction:', transaction);
+        const docRef = await addDoc(collection(db, 'transactions'), {
+            ...transaction,
+            createdAt: new Date()
+        });
+        console.log('Transaction saved with ID:', docRef.id);
+        
         // Add to cache directly
         transactions.unshift({ id: docRef.id, ...transaction });
         transactionCache.set(currentUser.uid, transactions);
@@ -296,9 +338,11 @@ async function saveDashboardTransaction(transaction) {
         renderTransactions();
         initializeChart();
         closeModal('add-transaction-modal');
+        showNotificationModal('Success', 'Transaction added successfully!');
     } catch (error) {
         console.error('Error adding transaction:', error);
-        showNotificationModal('Error', 'Failed to add transaction');
+        console.error('Error details:', error.message);
+        showNotificationModal('Error', `Failed to add transaction: ${error.message}`);
     }
 }
 
@@ -315,6 +359,36 @@ function handleSignOut() {
 
 // Make functions global
 window.signOut = handleSignOut;
+
+function showSignOutModal() {
+    const modal = document.createElement('div');
+    modal.className = 'confirmation-modal show';
+    modal.id = 'signout-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeConfirmationModal('signout-modal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.closeConfirmationModal = (modalId) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.confirmSignOut = () => {
+    handleSignOut();
+};
+
+window.showSignOutModal = showSignOutModal;
 window.showAddTransaction = showAddTransaction;
 window.closeModal = closeModal;
 window.submitDashboardTransaction = submitDashboardTransaction;

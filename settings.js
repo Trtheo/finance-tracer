@@ -9,10 +9,27 @@ let currentUser = null;
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
+        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
         loadUserProfile();
         loadUserSettings();
     } else {
         window.location.href = 'index.html';
+    }
+});
+
+// Profile dropdown
+document.getElementById('profile-icon').addEventListener('click', () => {
+    document.getElementById('profile-menu').classList.toggle('show');
+});
+
+document.getElementById('sign-out').addEventListener('click', () => {
+    showSignOutModal();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.profile-dropdown')) {
+        document.getElementById('profile-menu').classList.remove('show');
     }
 });
 
@@ -267,3 +284,29 @@ function showNotificationModal(title, message) {
 }
 
 window.showNotificationModal = showNotificationModal;
+
+function showSignOutModal() {
+    const modal = document.createElement('div');
+    modal.className = 'confirmation-modal show';
+    modal.id = 'signout-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeConfirmationModal('signout-modal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.closeConfirmationModal = (modalId) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.showSignOutModal = showSignOutModal;

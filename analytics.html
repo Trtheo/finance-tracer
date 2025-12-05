@@ -6,37 +6,49 @@
     <title>Analytics - Finance Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="modal.css">
-    <link rel="stylesheet" href="empty-state.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="app-layout">
+    <div class="app-container">
         <nav class="sidebar">
-            <div class="mobile-header">
-                <div class="logo">
-                    <span>Finance</span>
-                    <small>Personal Tracker</small>
+            <div class="sidebar-header">
+                <div class="mobile-header">
+                    <div>
+                        <h2><i class="fas fa-chart-line"></i> Finance</h2>
+                        <p>Personal Tracker</p>
+                    </div>
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
                 </div>
-                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
             </div>
-            <button class="collapse-btn desktop-only" onclick="toggleSidebar()">☰</button>
-            <ul class="nav-menu">
-                <li><a href="dashboard.html">📊 <span>Dashboard</span></a></li>
-                <li><a href="transactions.html">💸 <span>Transactions</span></a></li>
-                <li><a href="analytics.html" class="active">📈 <span>Analytics</span></a></li>
-                <li><a href="settings.html">⚙️ <span>Settings</span></a></li>
-                <li class="mobile-only"><a href="#" onclick="showSignOutModal()">🚪 Sign Out</a></li>
+            <ul class="nav-menu" id="nav-menu">
+                <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="transactions.html"><i class="fas fa-exchange-alt"></i> Transactions</a></li>
+                <li><a href="categories.html"><i class="fas fa-tags"></i> Categories</a></li>
+                <li><a href="analytics.html" class="active"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
-            <div class="sidebar-bottom">
-                <button class="sign-out desktop-only" onclick="showSignOutModal()">🚪 <span>Sign Out</span></button>
-            </div>
         </nav>
         
         <main class="main-content">
-            <header>
+            <header class="top-header">
                 <h1>Analytics</h1>
-                <p>Visualize your spending patterns and financial insights</p>
+                <div class="user-profile">
+                    <span id="user-name"></span>
+                    <div class="profile-dropdown">
+                        <i class="fas fa-user-circle" id="profile-icon"></i>
+                        <div class="dropdown-menu" id="profile-menu">
+                            <a href="settings.html"><i class="fas fa-user"></i> Profile</a>
+                            <a href="#" id="sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
+                        </div>
+                    </div>
+                </div>
             </header>
+            
+            <div class="page-content">
+                <p>Visualize your spending patterns and financial insights</p>
             
             <div class="stats-grid">
                 <div class="stat-card">
@@ -80,6 +92,7 @@
                         <div class="amount" id="avgMonthlyIncome">0.00</div>
                     </div>
                 </div>
+            </div>
             </div>
         </main>
     </div>

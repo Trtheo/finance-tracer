@@ -1,6 +1,7 @@
 import { auth, db } from './firebase-config.js';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { initializeCategories, initializeUser } from './init-collections.js';
 
 // Authentication functionality
 function showSignIn() {
@@ -93,6 +94,8 @@ document.getElementById('signin-form').addEventListener('submit', async function
     
     try {
         await signInWithEmailAndPassword(auth, email, password);
+        // Show success message before redirect
+        alert('Signed in successfully! Welcome back.');
         window.location.href = 'dashboard.html';
     } catch (error) {
         if (error.code === 'auth/user-not-found') {
@@ -148,13 +151,15 @@ document.getElementById('signup-form').addEventListener('submit', async function
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
         
-        // Store user profile in Firestore
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
+        // Store user profile and initialize categories
+        await initializeUser(userCredential.user.uid, {
             name: name,
-            email: email,
-            createdAt: new Date().toISOString()
+            email: email
         });
+        await initializeCategories(userCredential.user.uid);
         
+        // Show success message before redirect
+        alert('Account created successfully! Welcome to Finance Tracker.');
         window.location.href = 'dashboard.html';
     } catch (error) {
         if (error.code === 'auth/email-already-in-use') {
@@ -188,13 +193,13 @@ async function signInWithGoogle() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         
         if (!userDoc.exists()) {
-            // Create user profile in Firestore
-            await setDoc(doc(db, 'users', user.uid), {
+            // Create user profile and initialize categories
+            await initializeUser(user.uid, {
                 name: user.displayName,
                 email: user.email,
-                createdAt: new Date().toISOString(),
                 provider: 'google'
             });
+            await initializeCategories(user.uid);
         }
         
         window.location.href = 'dashboard.html';

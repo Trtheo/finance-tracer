@@ -18,6 +18,7 @@ onAuthStateChanged(auth, async (user) => {
             transactionCache.invalidate(currentUser.uid);
         }
         currentUser = user;
+        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
         await loadTransactions();
     } else {
         transactions = [];
@@ -25,6 +26,38 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = 'index.html';
     }
 });
+
+// Profile dropdown
+document.getElementById('profile-icon').addEventListener('click', () => {
+    document.getElementById('profile-menu').classList.toggle('show');
+});
+
+document.getElementById('sign-out').addEventListener('click', () => {
+    showSignOutModal();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.profile-dropdown')) {
+        document.getElementById('profile-menu').classList.remove('show');
+    }
+});
+
+// Load categories from Firestore
+async function loadCategories() {
+    try {
+        const q = query(collection(db, 'categories'), where('userId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+        const categories = [];
+        snapshot.forEach(doc => {
+            categories.push({ id: doc.id, ...doc.data() });
+        });
+        return categories;
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        return [];
+    }
+}
 
 // Load transactions from Firestore with caching
 async function loadTransactions(forceRefresh = false) {
@@ -43,17 +76,21 @@ async function loadTransactions(forceRefresh = false) {
             throw new Error('No authenticated user');
         }
 
+        console.log('Loading transactions for user:', currentUser.uid);
+        
         const q = query(
             collection(db, 'transactions'),
-            where('userId', '==', currentUser.uid),
-            orderBy('date', 'desc'),
-            limit(100)
+            where('userId', '==', currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         transactions = [];
         querySnapshot.forEach((docSnapshot) => {
-            transactions.push({ id: docSnapshot.id, ...docSnapshot.data() });
+            const data = docSnapshot.data();
+            console.log('Found transaction:', docSnapshot.id, data);
+            transactions.push({ id: docSnapshot.id, ...data });
         });
+        
+        console.log('Total transactions loaded:', transactions.length);
         
         // Cache the results
         transactionCache.set(currentUser.uid, transactions);
@@ -65,6 +102,8 @@ async function loadTransactions(forceRefresh = false) {
 
 function renderAllTransactions() {
     const container = document.getElementById('all-transactions');
+    console.log('Rendering transactions:', transactions.length);
+    
     if (transactions.length === 0) {
         container.innerHTML = '<div class="no-data">No transactions found. Start by adding your first transaction!</div>';
         return;
@@ -103,7 +142,12 @@ function getIcon(category) {
     return icons[category] || '💳';
 }
 
-function showAddTransaction() {
+async function showAddTransaction() {
+    const categories = await loadCategories();
+    const categoryOptions = categories.map(cat => 
+        `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`
+    ).join('');
+    
     const modal = new Modal('add-transaction-modal', {
         title: 'Add Transaction',
         size: 'medium',
@@ -127,12 +171,7 @@ function showAddTransaction() {
                     <label>Category</label>
                     <select id="category" required>
                         <option value="">Select Category</option>
-                        <option value="Food">Food</option>
-                        <option value="Transportation">Transportation</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Utilities">Utilities</option>
-                        <option value="Salary">Salary</option>
-                        <option value="Freelance">Freelance</option>
+                        ${categoryOptions}
                     </select>
                 </div>
                 <div class="form-group">
@@ -219,26 +258,43 @@ function submitTransaction() {
 
 async function saveTransaction(transactionData) {
     try {
+        console.log('Saving transaction:', transactionData);
+        
         if (editingId) {
             await updateDoc(doc(db, 'transactions', editingId), transactionData);
-            // Update cache directly
             const index = transactions.findIndex(t => t.id === editingId);
             if (index !== -1) {
                 transactions[index] = { id: editingId, ...transactionData };
             }
+            console.log('Transaction updated successfully');
         } else {
-            const docRef = await addDoc(collection(db, 'transactions'), transactionData);
-            // Add to cache directly
+            const docRef = await addDoc(collection(db, 'transactions'), {
+                ...transactionData,
+                createdAt: new Date()
+            });
             transactions.unshift({ id: docRef.id, ...transactionData });
+            console.log('Transaction added successfully with ID:', docRef.id);
         }
         
-        // Update cache
         transactionCache.set(currentUser.uid, transactions);
         renderAllTransactions();
         closeModal();
+        
+        if (editingId) {
+            showNotificationModal('Success', 'Transaction updated successfully!');
+        } else {
+            showNotificationModal('Success', 'Transaction added successfully!');
+        }
+        
+        // Force refresh from database to verify
+        setTimeout(() => {
+            loadTransactions(true);
+        }, 1000);
+        
     } catch (error) {
         console.error('Error saving transaction:', error);
-        showNotificationModal('Error', 'Failed to save transaction');
+        console.error('Error details:', error.message);
+        showNotificationModal('Error', `Failed to save transaction: ${error.message}`);
     }
 }
 
@@ -255,30 +311,68 @@ function viewTransaction(id) {
             <div class="detail-item"><strong>Type:</strong> ${transaction.type}</div>
             <div class="detail-item"><strong>Date:</strong> ${transaction.date}</div>
         `,
+        actions: ``
+    });
+    modal.open();
+}
+
+async function editTransaction(id) {
+    const transaction = transactions.find(t => t.id === id);
+    editingId = id;
+    
+    const categories = await loadCategories();
+    const categoryOptions = categories.map(cat => 
+        `<option value="${cat.name}" ${cat.name === transaction.category ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`
+    ).join('');
+    
+    const modal = new Modal('edit-transaction-modal', {
+        title: 'Edit Transaction',
+        size: 'medium',
+        content: `
+            <form id="transaction-form">
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="description" value="${transaction.description}" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="amount" value="${Math.abs(transaction.amount)}" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="date" value="${transaction.date}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="category" required>
+                        <option value="">Select Category</option>
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="type" required>
+                        <option value="expense" ${transaction.type === 'expense' ? 'selected' : ''}>Expense</option>
+                        <option value="income" ${transaction.type === 'income' ? 'selected' : ''}>Income</option>
+                    </select>
+                </div>
+            </form>
+        `,
         actions: `
-            <button class="btn-secondary" onclick="closeModal('view-transaction-modal')">Close</button>
-            <button class="btn-primary" onclick="editFromView()">Edit</button>
+            <button class="btn-secondary" onclick="closeModal('edit-transaction-modal')">Cancel</button>
+            <button class="btn-primary" onclick="submitTransaction()">Update</button>
         `
     });
     modal.open();
 }
 
-function editTransaction(id) {
-    const transaction = transactions.find(t => t.id === id);
-    document.getElementById('modal-title').textContent = 'Edit Transaction';
-    document.getElementById('description').value = transaction.description;
-    document.getElementById('amount').value = Math.abs(transaction.amount);
-    document.getElementById('category').value = transaction.category;
-    document.getElementById('type').value = transaction.type;
-    document.getElementById('date').value = transaction.date;
-    document.getElementById('submit-btn').textContent = 'Update';
-    editingId = id;
-    document.getElementById('add-transaction-modal').classList.remove('hidden');
-}
-
 function editFromView() {
-    closeModal();
-    editTransaction(editingId);
+    closeModal('view-transaction-modal');
+    setTimeout(() => {
+        editTransaction(editingId);
+    }, 100);
 }
 
 function deleteTransaction(id) {
@@ -303,6 +397,7 @@ async function confirmDelete() {
         transactionCache.set(currentUser.uid, transactions);
         renderAllTransactions();
         closeModal();
+        showNotificationModal('Success', 'Transaction deleted successfully!');
     } catch (error) {
         console.error('Error deleting transaction:', error);
         showNotificationModal('Error', 'Failed to delete transaction');
@@ -331,6 +426,32 @@ window.confirmDelete = confirmDelete;
 window.submitTransaction = submitTransaction;
 window.signOut = handleSignOut;
 window.confirmSignOut = handleSignOut;
+
+function showSignOutModal() {
+    const modal = document.createElement('div');
+    modal.className = 'confirmation-modal show';
+    modal.id = 'signout-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeConfirmationModal('signout-modal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.closeConfirmationModal = (modalId) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.showSignOutModal = showSignOutModal;
 
 // Notification modal function
 function showNotificationModal(title, message) {

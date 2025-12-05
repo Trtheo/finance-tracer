@@ -16,11 +16,28 @@ onAuthStateChanged(auth, async (user) => {
             transactionCache.invalidate(currentUser.uid);
         }
         currentUser = user;
+        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
         await loadTransactions();
     } else {
         transactions = [];
         currentUser = null;
         window.location.href = 'index.html';
+    }
+});
+
+// Profile dropdown
+document.getElementById('profile-icon').addEventListener('click', () => {
+    document.getElementById('profile-menu').classList.toggle('show');
+});
+
+document.getElementById('sign-out').addEventListener('click', () => {
+    showSignOutModal();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.profile-dropdown')) {
+        document.getElementById('profile-menu').classList.remove('show');
     }
 });
 
@@ -34,7 +51,7 @@ async function loadTransactions(forceRefresh = false) {
                 transactions = cached;
                 calculateAnalytics();
                 createCategoryChart();
-                createExpenseHistogram();
+                createIncomeExpenseChart();
                 return;
             }
         }
@@ -43,22 +60,26 @@ async function loadTransactions(forceRefresh = false) {
             throw new Error('No authenticated user');
         }
 
+        console.log('Loading analytics for user:', currentUser.uid);
         const q = query(
             collection(db, 'transactions'),
-            where('userId', '==', currentUser.uid),
-            orderBy('date', 'desc')
+            where('userId', '==', currentUser.uid)
         );
         const querySnapshot = await getDocs(q);
         transactions = [];
         querySnapshot.forEach((doc) => {
-            transactions.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            console.log('Analytics transaction:', doc.id, data);
+            transactions.push({ id: doc.id, ...data });
         });
+        
+        console.log('Analytics total transactions:', transactions.length);
         
         // Cache the results
         transactionCache.set(currentUser.uid, transactions);
         calculateAnalytics();
         createCategoryChart();
-        createExpenseHistogram();
+        createIncomeExpenseChart();
     } catch (error) {
         console.error('Error loading transactions:', error);
     }
@@ -120,14 +141,22 @@ function calculateAnalytics() {
 
 // Create pie chart for spending by category
 function createCategoryChart() {
-    const ctx = document.getElementById('categoryChart').getContext('2d');
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) return;
+    
+    if (window.categoryChartInstance) {
+        window.categoryChartInstance.destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
     const expenses = transactions.filter(t => t.type === 'expense');
     
     if (expenses.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.font = '16px Arial';
         ctx.fillStyle = '#666';
         ctx.textAlign = 'center';
-        ctx.fillText('No expense data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.fillText('No expense data available', canvas.width / 2, canvas.height / 2);
         return;
     }
     
@@ -140,8 +169,8 @@ function createCategoryChart() {
     const data = Object.values(categoryData);
     const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
     
-    new Chart(ctx, {
-        type: 'doughnut',
+    window.categoryChartInstance = new Chart(ctx, {
+        type: 'pie',
         data: {
             labels: labels,
             datasets: [{
@@ -156,10 +185,29 @@ function createCategoryChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom',
+                    position: window.innerWidth < 768 ? 'bottom' : 'right',
                     labels: {
-                        padding: 20,
-                        usePointStyle: true
+                        padding: 15,
+                        usePointStyle: true,
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            return data.labels.map((label, i) => {
+                                const value = data.datasets[0].data[i];
+                                return {
+                                    text: `${label}: ${formatCurrency(value)}`,
+                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                    strokeStyle: data.datasets[0].backgroundColor[i],
+                                    pointStyle: 'circle'
+                                };
+                            });
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${formatCurrency(context.parsed)}`;
+                        }
                     }
                 }
             }
@@ -167,42 +215,59 @@ function createCategoryChart() {
     });
 }
 
-// Create histogram for monthly expenses
-function createExpenseHistogram() {
-    const ctx = document.getElementById('expenseHistogram').getContext('2d');
-    const expenses = transactions.filter(t => t.type === 'expense');
+// Create income vs expense chart
+function createIncomeExpenseChart() {
+    const canvas = document.getElementById('expenseHistogram');
+    if (!canvas) return;
     
-    if (expenses.length === 0) {
+    if (window.incomeExpenseChartInstance) {
+        window.incomeExpenseChartInstance.destroy();
+    }
+    
+    const ctx = canvas.getContext('2d');
+    if (transactions.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.font = '16px Arial';
         ctx.fillStyle = '#666';
         ctx.textAlign = 'center';
-        ctx.fillText('No expense data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
         return;
     }
     
     // Group by month
     const monthlyData = {};
-    expenses.forEach(t => {
-        const month = t.date.slice(0, 7); // YYYY-MM
-        monthlyData[month] = (monthlyData[month] || 0) + Math.abs(t.amount);
+    transactions.forEach(t => {
+        const month = t.date.slice(0, 7);
+        if (!monthlyData[month]) {
+            monthlyData[month] = { income: 0, expense: 0 };
+        }
+        if (t.type === 'income') {
+            monthlyData[month].income += Math.abs(t.amount);
+        } else {
+            monthlyData[month].expense += Math.abs(t.amount);
+        }
     });
     
-    const labels = Object.keys(monthlyData).sort();
-    const data = labels.map(month => monthlyData[month]);
+    const labels = Object.keys(monthlyData).sort().slice(-6);
+    const incomeData = labels.map(month => monthlyData[month].income);
+    const expenseData = labels.map(month => monthlyData[month].expense);
     
-    new Chart(ctx, {
+    window.incomeExpenseChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels.map(month => {
                 const date = new Date(month + '-01');
-                return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                return date.toLocaleDateString('en-US', { month: 'short' });
             }),
             datasets: [{
-                label: 'Monthly Expenses',
-                data: data,
+                label: 'Income',
+                data: incomeData,
+                backgroundColor: '#10b981',
+                borderRadius: 4
+            }, {
+                label: 'Expense',
+                data: expenseData,
                 backgroundColor: '#ef4444',
-                borderColor: '#dc2626',
-                borderWidth: 1,
                 borderRadius: 4
             }]
         },
@@ -211,7 +276,18 @@ function createExpenseHistogram() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        padding: window.innerWidth < 768 ? 10 : 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+                        }
+                    }
                 }
             },
             scales: {
@@ -221,6 +297,11 @@ function createExpenseHistogram() {
                         callback: function(value) {
                             return formatCurrency(value);
                         }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
                     }
                 }
             }
@@ -246,5 +327,58 @@ window.addEventListener('currencyChanged', function() {
 window.addEventListener('focus', () => {
     if (currentUser && transactionCache.needsRefresh(currentUser.uid)) {
         loadTransactions(true);
+    }
+});
+
+function showSignOutModal() {
+    const modal = document.createElement('div');
+    modal.className = 'confirmation-modal show';
+    modal.id = 'signout-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Sign Out?</h3>
+            <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeConfirmationModal('signout-modal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmSignOut()">Sign Out</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.closeConfirmationModal = (modalId) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+};
+
+window.confirmSignOut = async () => {
+    try {
+        await signOut(auth);
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error('Sign out error:', error);
+        window.location.href = 'index.html';
+    }
+};
+
+window.showSignOutModal = showSignOutModal;
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const navMenu = document.getElementById('nav-menu');
+    navMenu.classList.toggle('mobile-open');
+}
+
+window.toggleMobileMenu = toggleMobileMenu;
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(e) {
+    const sidebar = document.querySelector('.sidebar');
+    const navMenu = document.getElementById('nav-menu');
+    if (!sidebar.contains(e.target) && navMenu.classList.contains('mobile-open')) {
+        navMenu.classList.remove('mobile-open');
     }
 });

@@ -36,8 +36,11 @@ document.addEventListener('click', (e) => {
 // Load user profile data
 function loadUserProfile() {
     if (currentUser) {
-        document.getElementById('profile-name').value = currentUser.displayName || '';
-        document.getElementById('profile-email').value = currentUser.email || '';
+        const nameInput = document.getElementById('profile-name');
+        const emailInput = document.getElementById('profile-email');
+        
+        if (nameInput) nameInput.value = currentUser.displayName || '';
+        if (emailInput) emailInput.value = currentUser.email || '';
     }
 }
 

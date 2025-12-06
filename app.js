@@ -357,10 +357,14 @@ async function saveDashboardTransaction(transaction) {
 function handleSignOut() {
     signOut(auth).then(() => {
         localStorage.clear();
+        sessionStorage.clear();
+        // Clear Firebase auth persistence
+        auth.signOut();
         window.location.href = 'index.html';
     }).catch((error) => {
         console.error('Sign out error:', error);
         localStorage.clear();
+        sessionStorage.clear();
         window.location.href = 'index.html';
     });
 }
@@ -392,8 +396,18 @@ window.closeConfirmationModal = (modalId) => {
     }
 };
 
-window.confirmSignOut = () => {
-    handleSignOut();
+window.confirmSignOut = async () => {
+    try {
+        await signOut(auth);
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+    } catch (error) {
+        console.error('Sign out error:', error);
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = 'index.html';
+    }
 };
 
 window.showSignOutModal = showSignOutModal;

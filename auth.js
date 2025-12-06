@@ -184,6 +184,9 @@ onAuthStateChanged(auth, (user) => {
 // Google Sign In
 async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
     
     try {
         const result = await signInWithPopup(auth, provider);
@@ -212,7 +215,9 @@ async function signInWithGoogle() {
             // Multiple popups, do nothing
             return;
         } else {
-            alert('Google sign in failed. Please try again.');
+            console.error('Google sign in error details:', error.code, error.message);
+            console.error('Full error object:', error);
+            alert(`Google sign in failed: ${error.code} - ${error.message}`);
         }
     }
 }

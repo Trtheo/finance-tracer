@@ -262,13 +262,9 @@ async function handleForgotPassword(e) {
             return;
         }
         
-        // Check if user exists in Firestore
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', email));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            showError('forgot-email', 'No account found with this email address');
+        // Check if user signed in with Google (can't reset password)
+        if (signInMethods.includes('google.com')) {
+            showError('forgot-email', 'This account uses Google sign-in. Please sign in with Google instead.');
             return;
         }
         

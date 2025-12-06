@@ -284,6 +284,9 @@ function showSuccessModal(title, message) {
     modal.className = 'success-modal';
     modal.innerHTML = `
         <div class="success-modal-content">
+            <button class="success-modal-close" onclick="this.closest('.success-modal').remove()">
+                <i class="fas fa-times"></i>
+            </button>
             <div class="success-icon">
                 <i class="fas fa-check-circle"></i>
             </div>

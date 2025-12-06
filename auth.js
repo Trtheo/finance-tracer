@@ -94,9 +94,10 @@ document.getElementById('signin-form').addEventListener('submit', async function
     
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // Show success message before redirect
-        alert('Signed in successfully! Welcome back.');
-        window.location.href = 'dashboard.html';
+        showSuccessModal('Welcome Back!', 'Signed in successfully. Redirecting to dashboard...');
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1500);
     } catch (error) {
         if (error.code === 'auth/user-not-found') {
             showError('signin-email', 'No account found with this email');
@@ -158,9 +159,10 @@ document.getElementById('signup-form').addEventListener('submit', async function
         });
         await initializeCategories(userCredential.user.uid);
         
-        // Show success message before redirect
-        alert('Account created successfully! Welcome to Finance Tracker.');
-        window.location.href = 'dashboard.html';
+        showSuccessModal('Welcome!', 'Account created successfully. Redirecting to dashboard...');
+        setTimeout(() => {
+            window.location.href = 'dashboard.html';
+        }, 1500);
     } catch (error) {
         if (error.code === 'auth/email-already-in-use') {
             showError('signup-email', 'An account with this email already exists');
@@ -254,38 +256,43 @@ async function handleForgotPassword(e) {
     }
     
     try {
-        // Check if email exists in Firebase Auth
-        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-        
-        if (signInMethods.length === 0) {
-            showError('forgot-email', 'No account found with this email address');
-            return;
-        }
-        
-        // Check if user signed in with Google (can't reset password)
-        if (signInMethods.includes('google.com')) {
-            showError('forgot-email', 'This account uses Google sign-in. Please sign in with Google instead.');
-            return;
-        }
-        
-        // Send password reset email
-        const actionCodeSettings = {
-            url: window.location.origin + '/index.html',
-            handleCodeInApp: false
-        };
-        
-        await sendPasswordResetEmail(auth, email, actionCodeSettings);
-        alert('Password reset email sent! Please check your inbox and spam folder.');
-        backToSignIn();
+        await sendPasswordResetEmail(auth, email);
+        showSuccessModal('Email Sent!', 'Password reset link sent to your email. Please check your inbox and spam folder.');
+        setTimeout(() => {
+            backToSignIn();
+        }, 2000);
     } catch (error) {
         if (error.code === 'auth/user-not-found') {
-            showError('forgot-email', 'No account found with this email');
+            showError('forgot-email', 'No account found with this email address');
         } else if (error.code === 'auth/invalid-email') {
             showError('forgot-email', 'Invalid email address');
+        } else if (error.code === 'auth/missing-continue-uri') {
+            showError('forgot-email', 'Configuration error. Please contact support.');
+        } else if (error.code === 'auth/invalid-continue-uri') {
+            showError('forgot-email', 'Configuration error. Please contact support.');
+        } else if (error.code === 'auth/unauthorized-continue-uri') {
+            showError('forgot-email', 'Configuration error. Please contact support.');
         } else {
-            showError('forgot-email', 'Failed to send reset email. Please try again.');
+            showError('forgot-email', `Error: ${error.code || 'Failed to send reset email'}`);
         }
     }
+}
+
+// Success Modal
+function showSuccessModal(title, message) {
+    const modal = document.createElement('div');
+    modal.className = 'success-modal';
+    modal.innerHTML = `
+        <div class="success-modal-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3>${title}</h3>
+            <p>${message}</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
 }
 
 // Make functions global

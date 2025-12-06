@@ -16,7 +16,10 @@ onAuthStateChanged(auth, async (user) => {
             transactionCache.invalidate(currentUser.uid);
         }
         currentUser = user;
-        document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
+        const userName = user.displayName || user.email.split('@')[0];
+        document.getElementById('user-name').textContent = userName;
+        const mobileUserName = document.getElementById('mobile-user-name');
+        if (mobileUserName) mobileUserName.textContent = userName;
         await loadTransactions();
     } else {
         transactions = [];
@@ -32,6 +35,14 @@ document.getElementById('profile-icon').addEventListener('click', () => {
 
 document.getElementById('sign-out').addEventListener('click', () => {
     showSignOutModal();
+});
+
+// Mobile sign out - use event delegation
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'mobile-sign-out' || e.target.closest('#mobile-sign-out')) {
+        e.preventDefault();
+        showSignOutModal();
+    }
 });
 
 // Close dropdown when clicking outside
@@ -397,6 +408,7 @@ window.closeConfirmationModal = (modalId) => {
 };
 
 window.confirmSignOut = async () => {
+    closeConfirmationModal('signout-modal');
     try {
         await signOut(auth);
         localStorage.clear();

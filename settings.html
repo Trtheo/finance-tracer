@@ -12,15 +12,31 @@
     <div class="app-container">
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h2><i class="fas fa-chart-line"></i> Finance</h2>
-                <p>Personal Tracker</p>
+                <div class="header-content">
+                    <div>
+                        <h2><i class="fas fa-chart-line"></i> Finance</h2>
+                        <p>Personal Tracker</p>
+                    </div>
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
             </div>
             <ul class="nav-menu">
+                <li class="mobile-user-profile">
+                    <div class="mobile-user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="mobile-user-name"></span>
+                    </div>
+                </li>
                 <li><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
                 <li><a href="transactions.html"><i class="fas fa-exchange-alt"></i> Transactions</a></li>
                 <li><a href="categories.html"><i class="fas fa-tags"></i> Categories</a></li>
                 <li><a href="analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="settings.html" class="active"><i class="fas fa-cog"></i> Settings</a></li>
+                <li class="mobile-menu-divider"></li>
+                <li><a href="settings.html"><i class="fas fa-user"></i> Profile</a></li>
+                <li><a href="#" id="mobile-sign-out"><i class="fas fa-sign-out-alt"></i> Sign Out</a></li>
             </ul>
         </nav>
         
@@ -115,6 +131,15 @@
     
     <script type="module" src="settings.js"></script>
     <script>
+        // Mobile sign out handler
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'mobile-sign-out' || e.target.closest('#mobile-sign-out')) {
+                e.preventDefault();
+                const signOutBtn = document.getElementById('sign-out');
+                if (signOutBtn) signOutBtn.click();
+            }
+        });
+        
         function toggleMobileMenu() {
             const navMenu = document.querySelector('.nav-menu');
             const sidebar = document.querySelector('.sidebar');

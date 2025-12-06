@@ -268,6 +268,12 @@ body {
     margin-bottom: 2rem;
 }
 
+.sidebar-header .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .sidebar-header h2 {
     font-size: 1.5rem;
     font-weight: bold;
@@ -278,6 +284,26 @@ body {
 .sidebar-header p {
     color: #6b7280;
     font-size: 0.875rem;
+}
+
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: #10b981;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.mobile-menu-toggle:hover {
+    background: #f0fdf4;
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
 }
 
 .top-header {
@@ -785,16 +811,21 @@ body {
         padding: 1rem;
         border-right: none;
         border-bottom: 1px solid #e2e8f0;
+        position: relative;
+    }
+    
+    .sidebar-header {
+        margin-bottom: 0;
     }
     
     .mobile-menu-toggle {
-        display: block;
+        display: block !important;
     }
     
     .nav-menu {
-        display: none;
-        position: absolute;
-        top: 100%;
+        display: none !important;
+        position: fixed;
+        top: auto;
         left: 1rem;
         right: 1rem;
         background: white;
@@ -808,12 +839,52 @@ body {
     }
     
     .nav-menu.mobile-open {
-        display: flex;
+        display: flex !important;
     }
     
     .nav-menu li {
         margin: 0;
         width: 100%;
+    }
+    
+    .mobile-user-profile {
+        background: #f0fdf4;
+        border-radius: 8px;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .mobile-user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    .mobile-user-info i {
+        font-size: 1.5rem;
+    }
+    
+    .mobile-menu-divider {
+        height: 1px;
+        background: #e2e8f0;
+        margin: 0.5rem 0;
+    }
+    
+    .top-header {
+        padding-bottom: 0;
+        border-bottom: none;
+        margin-bottom: 1rem;
+    }
+    
+    .top-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .user-profile {
+        display: none;
     }
     
     .nav-menu a {
@@ -832,6 +903,15 @@ body {
     .nav-menu a:hover, .nav-menu a.active {
         background: #10b981;
         color: white;
+    }
+    
+    #mobile-sign-out {
+        color: #ef4444 !important;
+    }
+    
+    #mobile-sign-out:hover {
+        background: #fee2e2 !important;
+        color: #dc2626 !important;
     }
     
     .charts-container {
@@ -1265,13 +1345,17 @@ body {
     
     .sidebar {
         width: 100%;
-        padding: 0.75rem 1rem;
+        padding: 1rem;
         border-right: none;
         border-bottom: 1px solid #e2e8f0;
         position: sticky;
         top: 0;
         background: white;
         z-index: 100;
+    }
+    
+    .sidebar-header {
+        margin-bottom: 0;
     }
     
     .mobile-header {
@@ -1358,43 +1442,89 @@ body {
     }
     
     .main-content {
-        padding: 1.5rem 1rem;
+        padding: 1rem;
         flex: 1;
     }
     
-    .main-content header {
+    .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
         margin-bottom: 1.5rem;
     }
     
-    .main-content h1 {
-        font-size: 1.75rem;
-        margin-bottom: 0.5rem;
+    .top-header h1 {
+        font-size: 1.5rem;
     }
     
-    .main-content header p {
-        font-size: 1rem;
-        margin-bottom: 0;
+    .page-content > p {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
     }
     
     /* Section Header Mobile */
-    .section-header {
+    .section-header,
+    .page-header {
         flex-direction: column;
         align-items: stretch;
         gap: 1rem;
         margin-bottom: 1.5rem;
     }
     
-    .section-header h2 {
+    .section-header h2,
+    .page-header h2 {
         font-size: 1.25rem;
         margin: 0;
     }
     
-    .btn-primary {
+    .page-header p {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin: 0;
+    }
+    
+    .btn-primary,
+    .btn.btn-primary {
         width: 100%;
         padding: 1rem;
         font-size: 1rem;
         min-height: 48px;
         border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    /* Stats Grid Mobile */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.25rem;
+    }
+    
+    /* Categories Grid Mobile */
+    .categories-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .category-section h3 {
+        font-size: 1.1rem;
+    }
+    
+    /* Charts Mobile */
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-section,
+    .chart-card {
+        max-width: 100%;
+        padding: 1rem;
     }
     
     /* Transactions Section Mobile */

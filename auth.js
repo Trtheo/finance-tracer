@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, fetchSignInMethodsForEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { initializeCategories, initializeUser } from './init-collections.js';
 
 // Authentication functionality
@@ -222,7 +222,80 @@ async function signInWithGoogle() {
     }
 }
 
+// Forgot Password
+function showForgotPassword() {
+    document.getElementById('signin-form').classList.add('hidden');
+    document.getElementById('signup-form').classList.add('hidden');
+    document.getElementById('forgot-password-form').classList.remove('hidden');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+}
+
+function backToSignIn() {
+    document.getElementById('forgot-password-form').classList.add('hidden');
+    document.getElementById('signin-form').classList.remove('hidden');
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    clearErrors();
+}
+
+async function handleForgotPassword(e) {
+    e.preventDefault();
+    clearErrors();
+    
+    const email = document.getElementById('forgot-email').value.trim();
+    
+    if (!email) {
+        showError('forgot-email', 'Email is required');
+        return;
+    }
+    
+    if (!validateEmail(email)) {
+        showError('forgot-email', 'Please enter a valid email address');
+        return;
+    }
+    
+    try {
+        // Check if email exists in Firebase Auth
+        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+        
+        if (signInMethods.length === 0) {
+            showError('forgot-email', 'No account found with this email address');
+            return;
+        }
+        
+        // Check if user exists in Firestore
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            showError('forgot-email', 'No account found with this email address');
+            return;
+        }
+        
+        // Send password reset email
+        const actionCodeSettings = {
+            url: window.location.origin + '/index.html',
+            handleCodeInApp: false
+        };
+        
+        await sendPasswordResetEmail(auth, email, actionCodeSettings);
+        alert('Password reset email sent! Please check your inbox and spam folder.');
+        backToSignIn();
+    } catch (error) {
+        if (error.code === 'auth/user-not-found') {
+            showError('forgot-email', 'No account found with this email');
+        } else if (error.code === 'auth/invalid-email') {
+            showError('forgot-email', 'Invalid email address');
+        } else {
+            showError('forgot-email', 'Failed to send reset email. Please try again.');
+        }
+    }
+}
+
 // Make functions global
 window.showSignIn = showSignIn;
 window.showSignUp = showSignUp;
 window.signInWithGoogle = signInWithGoogle;
+window.showForgotPassword = showForgotPassword;
+window.backToSignIn = backToSignIn;
+window.handleForgotPassword = handleForgotPassword;

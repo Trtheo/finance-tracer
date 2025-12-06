@@ -376,6 +376,60 @@ body {
     text-decoration: underline;
 }
 
+/* Forgot Password Styles */
+.forgot-password-link {
+    text-align: right;
+    margin-top: -0.5rem;
+}
+
+.forgot-password-link a {
+    color: #10b981;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.forgot-password-link a:hover {
+    color: #059669;
+    text-decoration: underline;
+}
+
+.back-link {
+    margin-bottom: 1.5rem;
+}
+
+.back-link a {
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+}
+
+.back-link a:hover {
+    color: #10b981;
+}
+
+.forgot-password-header {
+    margin-bottom: 2rem;
+}
+
+.forgot-password-header h3 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.forgot-password-header p {
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
 /* Hidden class */
 .hidden {
     display: none !important;

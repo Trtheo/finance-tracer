@@ -4,17 +4,54 @@ import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } 
 
 let currentUser = null;
 let editingCategory = null;
+let allCategories = { income: [], expense: [] };
 
 // Auth state
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         document.getElementById('user-name').textContent = user.displayName || user.email;
-        loadCategories();
+        await initializeDefaultCategories();
+        await loadCategories();
     } else {
         window.location.href = 'index.html';
     }
 });
+
+async function initializeDefaultCategories() {
+    try {
+        const q = query(collection(db, 'categories'), where('userId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            const defaultCategories = [
+                { name: 'Salary', type: 'income', icon: '💰' },
+                { name: 'Freelance', type: 'income', icon: '💼' },
+                { name: 'Investment', type: 'income', icon: '📈' },
+                { name: 'Food', type: 'expense', icon: '🍔' },
+                { name: 'Transportation', type: 'expense', icon: '🚗' },
+                { name: 'Entertainment', type: 'expense', icon: '🎬' },
+                { name: 'Shopping', type: 'expense', icon: '🛍️' },
+                { name: 'Utilities', type: 'expense', icon: '💡' },
+                { name: 'Healthcare', type: 'expense', icon: '🏥' },
+                { name: 'Education', type: 'expense', icon: '📚' }
+            ];
+            
+            const promises = defaultCategories.map(category => 
+                addDoc(collection(db, 'categories'), {
+                    ...category,
+                    userId: currentUser.uid,
+                    createdAt: new Date()
+                })
+            );
+            
+            await Promise.all(promises);
+            console.log('Default categories initialized');
+        }
+    } catch (error) {
+        console.error('Error initializing categories:', error);
+    }
+}
 
 // Profile dropdown
 document.getElementById('profile-icon').addEventListener('click', () => {
@@ -70,7 +107,7 @@ document.getElementById('category-form').addEventListener('submit', async (e) =>
         }
         
         closeModal();
-        loadCategories();
+        await loadCategories();
         
         if (editingCategory) {
             showNotificationModal('Success', 'Category updated successfully!');
@@ -128,11 +165,8 @@ async function loadCategories() {
             }
         });
         
-        renderCategories('income-categories', incomeCategories);
-        renderCategories('expense-categories', expenseCategories);
-        
-        document.getElementById('income-count').textContent = incomeCategories.length;
-        document.getElementById('expense-count').textContent = expenseCategories.length;
+        allCategories = { income: incomeCategories, expense: expenseCategories };
+        applyFilters();
         
     } catch (error) {
         console.error('Error loading categories:', error);
@@ -141,6 +175,8 @@ async function loadCategories() {
 
 function renderCategories(containerId, categories) {
     const container = document.getElementById(containerId);
+    
+    if (!container) return;
     
     if (categories.length === 0) {
         container.innerHTML = '<p class="empty-state">No categories yet</p>';
@@ -243,7 +279,7 @@ window.confirmSignOut = async () => {
 window.confirmDelete = async (categoryId) => {
     try {
         await deleteDoc(doc(db, 'categories', categoryId));
-        loadCategories();
+        await loadCategories();
         closeConfirmationModal('delete-modal');
         showNotificationModal('Success', 'Category deleted successfully!');
     } catch (error) {
@@ -253,3 +289,36 @@ window.confirmDelete = async (categoryId) => {
 };
 
 window.showSignOutModal = showSignOutModal;
+
+function applyFilters() {
+    const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
+    const typeFilter = document.getElementById('filter-type')?.value || '';
+    
+    const filteredIncome = allCategories.income.filter(c => 
+        c.name.toLowerCase().includes(searchTerm) && (!typeFilter || typeFilter === 'income')
+    );
+    
+    const filteredExpense = allCategories.expense.filter(c => 
+        c.name.toLowerCase().includes(searchTerm) && (!typeFilter || typeFilter === 'expense')
+    );
+    
+    renderCategories('income-categories', filteredIncome);
+    renderCategories('expense-categories', filteredExpense);
+    
+    document.getElementById('income-count').textContent = filteredIncome.length;
+    document.getElementById('expense-count').textContent = filteredExpense.length;
+}
+
+window.resetFilters = () => {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-type').value = '';
+    applyFilters();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    const filterType = document.getElementById('filter-type');
+    
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (filterType) filterType.addEventListener('change', applyFilters);
+});

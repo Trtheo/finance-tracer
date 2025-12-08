@@ -1335,8 +1335,128 @@ body {
     color: #10b981;
 }
 
+/* Filter Section Styles */
+.filter-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+.search-bar {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.search-bar i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1rem;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.filter-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.filter-controls select {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-controls select:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.btn-reset {
+    padding: 0.875rem 1.5rem;
+    background: #f3f4f6;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-reset:hover {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+.btn-reset i {
+    font-size: 0.875rem;
+}
+
 /* Mobile First Approach */
 @media (max-width: 480px) {
+    /* Filter Section Mobile */
+    .filter-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .search-bar {
+        margin-bottom: 0.75rem;
+    }
+    
+    .search-bar input {
+        padding: 1rem 1rem 1rem 3rem;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+    
+    .filter-controls {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .filter-controls select {
+        padding: 1rem;
+        font-size: 1rem;
+        border-radius: 12px;
+        min-height: 48px;
+    }
+    
+    .btn-reset {
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 12px;
+        min-height: 48px;
+    }
+    
     /* App Layout Mobile */
     .app-layout {
         flex-direction: column;

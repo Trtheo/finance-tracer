@@ -65,6 +65,23 @@
                     </button>
                 </div>
 
+                <div class="filter-section">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="Search categories...">
+                    </div>
+                    <div class="filter-controls">
+                        <select id="filter-type">
+                            <option value="">All Types</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                        <button class="btn-reset" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
                 <div class="categories-grid">
                     <div class="category-section">
                         <h3><i class="fas fa-arrow-up text-success"></i> Income Categories (<span id="income-count">0</span>)</h3>

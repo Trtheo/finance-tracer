@@ -5,6 +5,7 @@ import { formatCurrency, Modal } from './utils.js';
 import { transactionCache } from './cache.js';
 
 let transactions = [];
+let filteredTransactions = [];
 let currentUser = null;
 let editingId = null;
 let deletingId = null;
@@ -19,6 +20,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         currentUser = user;
         document.getElementById('user-name').textContent = user.displayName || user.email.split('@')[0];
+        await initializeDefaultCategories();
         await loadTransactions();
     } else {
         transactions = [];
@@ -26,6 +28,38 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = 'index.html';
     }
 });
+
+async function initializeDefaultCategories() {
+    try {
+        const q = query(collection(db, 'categories'), where('userId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            const defaultCategories = [
+                { name: 'Salary', type: 'income', icon: '💰' },
+                { name: 'Freelance', type: 'income', icon: '💼' },
+                { name: 'Investment', type: 'income', icon: '📈' },
+                { name: 'Food', type: 'expense', icon: '🍔' },
+                { name: 'Transportation', type: 'expense', icon: '🚗' },
+                { name: 'Entertainment', type: 'expense', icon: '🎬' },
+                { name: 'Shopping', type: 'expense', icon: '🛍️' },
+                { name: 'Utilities', type: 'expense', icon: '💡' },
+                { name: 'Healthcare', type: 'expense', icon: '🏥' },
+                { name: 'Education', type: 'expense', icon: '📚' }
+            ];
+            
+            for (const category of defaultCategories) {
+                await addDoc(collection(db, 'categories'), {
+                    ...category,
+                    userId: currentUser.uid,
+                    createdAt: new Date()
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error initializing categories:', error);
+    }
+}
 
 // Profile dropdown
 document.getElementById('profile-icon').addEventListener('click', () => {
@@ -94,22 +128,81 @@ async function loadTransactions(forceRefresh = false) {
         
         // Cache the results
         transactionCache.set(currentUser.uid, transactions);
+        filteredTransactions = [...transactions];
+        await populateFilterCategories();
         renderAllTransactions();
     } catch (error) {
         console.error('Error loading transactions:', error);
     }
 }
 
+async function populateFilterCategories() {
+    const categories = await loadCategories();
+    const select = document.getElementById('filter-category');
+    select.innerHTML = '<option value="">All Categories</option>';
+    categories.forEach(cat => {
+        select.innerHTML += `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`;
+    });
+}
+
+function applyFilters() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const categoryFilter = document.getElementById('filter-category').value;
+    const typeFilter = document.getElementById('filter-type').value;
+    const dateFilter = document.getElementById('filter-date').value;
+    
+    filteredTransactions = transactions.filter(t => {
+        const matchesSearch = t.description.toLowerCase().includes(searchTerm);
+        const matchesCategory = !categoryFilter || t.category === categoryFilter;
+        const matchesType = !typeFilter || t.type === typeFilter;
+        const matchesDate = !dateFilter || isInDateRange(t.date, dateFilter);
+        
+        return matchesSearch && matchesCategory && matchesType && matchesDate;
+    });
+    
+    renderAllTransactions();
+}
+
+function isInDateRange(dateStr, range) {
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    switch(range) {
+        case 'today':
+            return date.toDateString() === today.toDateString();
+        case 'week':
+            const weekAgo = new Date(today);
+            weekAgo.setDate(today.getDate() - 7);
+            return date >= weekAgo;
+        case 'month':
+            return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        case 'year':
+            return date.getFullYear() === today.getFullYear();
+        default:
+            return true;
+    }
+}
+
+function resetFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-category').value = '';
+    document.getElementById('filter-type').value = '';
+    document.getElementById('filter-date').value = '';
+    filteredTransactions = [...transactions];
+    renderAllTransactions();
+}
+
 function renderAllTransactions() {
     const container = document.getElementById('all-transactions');
-    console.log('Rendering transactions:', transactions.length);
+    console.log('Rendering transactions:', filteredTransactions.length);
     
-    if (transactions.length === 0) {
-        container.innerHTML = '<div class="no-data">No transactions found. Start by adding your first transaction!</div>';
+    if (filteredTransactions.length === 0) {
+        container.innerHTML = '<div class="no-data">No transactions found. Try adjusting your filters.</div>';
         return;
     }
     
-    container.innerHTML = [...transactions].reverse().map(t => `
+    container.innerHTML = [...filteredTransactions].reverse().map(t => `
         <div class="transaction-item">
             <div class="transaction-icon" style="background: ${t.type === 'income' ? '#dcfce7' : '#fee2e2'}">
                 ${getIcon(t.category)}
@@ -277,6 +370,7 @@ async function saveTransaction(transactionData) {
         }
         
         transactionCache.set(currentUser.uid, transactions);
+        filteredTransactions = [...transactions];
         renderAllTransactions();
         closeModal();
         
@@ -394,6 +488,7 @@ async function confirmDelete() {
         await deleteDoc(doc(db, 'transactions', deletingId));
         // Remove from cache directly
         transactions = transactions.filter(t => t.id !== deletingId);
+        filteredTransactions = filteredTransactions.filter(t => t.id !== deletingId);
         transactionCache.set(currentUser.uid, transactions);
         renderAllTransactions();
         closeModal();
@@ -472,3 +567,18 @@ window.addEventListener('currencyChanged', function() {
         renderAllTransactions();
     }
 });
+
+// Add event listeners for filters
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    const filterCategory = document.getElementById('filter-category');
+    const filterType = document.getElementById('filter-type');
+    const filterDate = document.getElementById('filter-date');
+    
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (filterCategory) filterCategory.addEventListener('change', applyFilters);
+    if (filterType) filterType.addEventListener('change', applyFilters);
+    if (filterDate) filterDate.addEventListener('change', applyFilters);
+});
+
+window.resetFilters = resetFilters;
